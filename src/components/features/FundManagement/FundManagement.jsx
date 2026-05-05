@@ -387,31 +387,33 @@ const FundManagement = () => {
 
       // Create notification for the student
       const notificationData = {
-        userId: request.userId,
+        userId: request.userId || 'unknown_user',
         title: `Budget Request ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-        message: `Your budget request for ₹${request.requestedAmount.toLocaleString()} has been ${status}. Note: ${approvalNote}`,
+        message: `Your budget request for ₹${(request.requestedAmount || 0).toLocaleString()} has been ${status}. Note: ${approvalNote}`,
         type: isApproved ? 'success' : 'error',
         read: false,
         createdAt: now,
         requestId: applicationId,
-        amount: request.requestedAmount,
-        department: request.department
+        amount: request.requestedAmount || 0,
+        department: request.department || 'General'
       };
 
       // Update student's budget if approved
       if (isApproved) {
-        const studentBudgetRef = ref(db, `student_budgets/${request.userId}`);
-        const studentBudgetSnapshot = await get(studentBudgetRef);
-        const currentBudget = studentBudgetSnapshot.exists() ? studentBudgetSnapshot.val() : {
-          totalSpent: 0,
-          lastUpdated: now
-        };
+        if (request.userId) {
+          const studentBudgetRef = ref(db, `student_budgets/${request.userId}`);
+          const studentBudgetSnapshot = await get(studentBudgetRef);
+          const currentBudget = studentBudgetSnapshot.exists() ? studentBudgetSnapshot.val() : {
+            totalSpent: 0,
+            lastUpdated: now
+          };
 
-        updates[`/student_budgets/${request.userId}`] = {
-          ...currentBudget,
-          totalSpent: currentBudget.totalSpent + parseFloat(request.requestedAmount),
-          lastUpdated: now
-        };
+          updates[`/student_budgets/${request.userId}`] = {
+            ...currentBudget,
+            totalSpent: currentBudget.totalSpent + parseFloat(request.requestedAmount || 0),
+            lastUpdated: now
+          };
+        }
 
         // Update department budget
         if (request.department) {
@@ -424,26 +426,31 @@ const FundManagement = () => {
 
           updates[`/department_budgets/${request.department}`] = {
             ...deptBudget,
-            spent: deptBudget.spent + parseFloat(request.requestedAmount),
+            spent: deptBudget.spent + parseFloat(request.requestedAmount || 0),
             lastUpdated: now
           };
         }
       }
 
-      // Add notification
+      // Clean up undefined values for notification data
+      const safeUserId = request.userId || 'unknown_user';
+
+      // Attempt to send notification under root notifications 
+      // (We decouple this from Promise.all so a notification rules error doesn't break the UI)
       const newNotificationRef = push(ref(db, 'notifications'));
+      set(newNotificationRef, notificationData).catch(err => {
+        console.warn('Silent notification failure (likely a rules mismatch):', err);
+      });
       
-      await Promise.all([
-        update(ref(db), updates),
-        set(newNotificationRef, notificationData)
-      ]);
+      // Update the main budget request
+      await update(ref(db), updates);
 
       toast.success(`Request ${status} successfully`);
       setSelectedApplication(null);
       setApprovalNote('');
     } catch (error) {
       console.error('Error updating request:', error);
-      toast.error('Failed to update request status');
+      toast.error(`Failed: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }

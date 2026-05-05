@@ -21,6 +21,9 @@
         }
       }
     },
+    "courses": {
+      ".indexOn": ["facultyId"]
+    },
     "complaintRequests": {
       ".indexOn": ["studentId", "status", "createdAt"],
       ".read": "auth != null",

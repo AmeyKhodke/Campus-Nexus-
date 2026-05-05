@@ -3,7 +3,7 @@ import { database } from '../config/firebase';
 
 export const createNotification = async (userId, data) => {
   try {
-    const notificationsRef = ref(database, `notifications/${userId}`);
+    const notificationsRef = ref(database, `notifications/users/${userId}`);
     const newNotificationRef = push(notificationsRef);
     
     await set(newNotificationRef, {

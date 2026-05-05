@@ -290,23 +290,44 @@ const ApplicationForm = ({ onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Final validation
+    if (!validateStep(step)) return;
+
     setIsSubmitting(true);
 
     try {
-      const applicationRef = ref(database, 'applications');
-      const newApplication = {
-        ...form.getValues(),
-        studentId: user.uid,
-        studentName: user.displayName || user.email,
+      // 1. Upload files first if any
+      let uploadedDocs = [];
+      if (selectedFiles.length > 0) {
+        toast.loading('Uploading documents...', { id: 'upload-toast' });
+        uploadedDocs = await uploadFiles();
+        toast.success('Documents uploaded successfully!', { id: 'upload-toast' });
+      }
+
+      // 2. Prepare application data
+      const currentValues = form.getValues();
+      const typeData = applicationTypes.find(t => t.id === currentValues.type);
+      const category = typeData?.category || 'academic';
+
+      const applicationData = {
+        ...currentValues,
+        documents: uploadedDocs,
+        userId: user.uid,
+        userName: user.displayName || user.email,
+        userEmail: user.email,
+        category: category,
         status: 'pending',
-        createdAt: serverTimestamp()
+        createdAt: new Date().toISOString(),
       };
 
-      const newRef = await push(applicationRef, newApplication);
+      // 3. Save to Firebase at the categorized path
+      const applicationRef = ref(database, `applications/${category}`);
+      const newRef = await push(applicationRef, applicationData);
       
-      // Create notification for the new application
+      // 4. Create notification
       await createApplicationNotification(
-        { ...newApplication, id: newRef.key },
+        { ...applicationData, id: newRef.key },
         user
       );
 
@@ -314,7 +335,7 @@ const ApplicationForm = ({ onClose }) => {
       onClose();
     } catch (error) {
       console.error('Error submitting application:', error);
-      toast.error('Failed to submit application');
+      toast.error('Failed to submit application: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -632,7 +653,8 @@ const ApplicationForm = ({ onClose }) => {
                 </Button>
               )}
               <Button 
-                type="submit"
+                type={step === steps.length ? "submit" : "button"}
+                onClick={step === steps.length ? undefined : handleNext}
                 className={form.watch('priority') === 'urgent' ? 'bg-red-600 hover:bg-red-700' : ''}
                 disabled={isSubmitting}
               >

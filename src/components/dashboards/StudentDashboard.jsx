@@ -256,6 +256,39 @@ const StudentDashboard = () => {
     return () => unsubscribe();
   }, [user]);
 
+  // Add real-time notification listener
+  useEffect(() => {
+    if (!user) return;
+
+    const database = getDatabase();
+    const notificationsRef = ref(database, `notifications/users/${user.uid}`);
+    
+    const unsubscribe = onValue(notificationsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const notificationsData = [];
+        snapshot.forEach((childSnapshot) => {
+          const data = childSnapshot.val();
+          notificationsData.push({
+            id: childSnapshot.key,
+            ...data,
+            // Map Firebase data to dashboard format
+            time: formatDate(data.createdAt || Date.now()),
+            icon: getNotificationIcon(data.type?.split('_')[0] || 'default'),
+            color: getColorForAction(data.type?.split('_')[0] || 'default')
+          });
+        });
+
+        // Sort by newest first and limit to 5
+        notificationsData.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        setNotifications(notificationsData.slice(0, 5));
+      } else {
+        setNotifications([]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
   // Data processing helper functions (minor changes for robustness if any)
   const processElectionData = (data) => {
     if (!data || (Array.isArray(data) && data.length === 0) || (typeof data === 'object' && Object.keys(data).length === 0) ) { // Handle empty object from Firebase

@@ -2,6 +2,19 @@
   "rules": {
     ".read": "auth != null",
     ".write": false,
+    "budget_requests": {
+      ".indexOn": ["userId", "status", "createdAt", "department"],
+      ".read": "auth != null",
+      ".write": "auth != null && (root.child('admins').child(auth.uid).exists() || root.child('faculty').child(auth.uid).exists() || (!data.exists() && newData.child('userId').val() === auth.uid))"
+    },
+    "student_budgets": {
+      ".read": "auth != null",
+      ".write": "auth != null && (root.child('admins').child(auth.uid).exists() || root.child('faculty').child(auth.uid).exists())"
+    },
+    "department_budgets": {
+      ".read": "auth != null",
+      ".write": "auth != null && (root.child('admins').child(auth.uid).exists() || root.child('faculty').child(auth.uid).exists())"
+    },
     "applications": {
       "$category": {
         ".indexOn": ["userId", "status", "createdAt"],
@@ -42,6 +55,9 @@
             ".validate": "newData.hasChildren(['type', 'createdAt'])"
           }
         }
+      },
+      "$notificationId": {
+        ".validate": "newData.hasChildren(['type', 'createdAt'])"
       },
       "admin": {
         ".indexOn": ["createdAt", "status", "type"],

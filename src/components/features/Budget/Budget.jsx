@@ -880,10 +880,9 @@ const Budget = () => {
     });
 
     // Listen to notifications
-    const notificationsRef = ref(database, 'notifications');
-    const notificationsQuery = dbQuery(notificationsRef, orderByChild('userId'), equalTo(userId));
+    const notificationsRef = ref(database, `notifications/users/${userId}`);
     
-    const notificationsUnsubscribe = onValue(notificationsQuery, (snapshot) => {
+    const notificationsUnsubscribe = onValue(notificationsRef, (snapshot) => {
       const notificationsData = [];
       snapshot.forEach((childSnapshot) => {
         notificationsData.push({
