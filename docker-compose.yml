@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  campus-nexus:
+    build: .
+    container_name: campus-nexus-app
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_HOST=0.0.0.0
+    command: npm run dev -- --host 0.0.0.0
+    stdin_open: true
+    tty: true
+    networks:
+      - campus-network
+
+networks:
+  campus-network:
+    driver: bridge
