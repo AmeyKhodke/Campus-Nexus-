@@ -24,11 +24,11 @@ dist-ssr
 *.sw?
 
 #Environment Variables
- src/.env
+src/.env
 
 #Project Overviews
- PROJECT_OVERVIEW.md
+PROJECT_OVERVIEW.md
 
 #firebase rules
- firebase-rules.json
- package-lock.json
+firebase-rules.json
+package-lock.json
